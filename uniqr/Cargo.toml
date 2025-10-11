@@ -1,0 +1,15 @@
+[package]
+name = "uniqr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "*"
+
+[dev-dependencies]
+anyhow = "*"
+pretty_assertions = "*"
+assert_cmd = "2"
+predicates = "2"
+tempfile = "3"
+rand = "0.8"
