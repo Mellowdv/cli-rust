@@ -1,0 +1,15 @@
+[package]
+name = "findr"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = "*"
+regex = "*"
+
+[dev-dependencies]
+predicates = "*"
+anyhow = "*"
+assert_cmd = "*"
+rand = "0.8"
+pretty_assertions = "*"
