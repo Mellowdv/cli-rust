@@ -1,13 +1,34 @@
 use std::error::Error;
-use clap::{Command, Arg, ArgAction};
+use clap::{Command, Arg, ArgAction, ValueEnum, builder::PossibleValue, builder::EnumValueParser};
 use regex::Regex;
 use std::path::Path;
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+enum EntryType {
+    Dir,
+    File,
+    Link,
+}
+
+impl ValueEnum for EntryType {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[EntryType::Dir, EntryType::File, EntryType::Link]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            EntryType::Dir => PossibleValue::new("d"),
+            EntryType::File => PossibleValue::new("f"),
+            EntryType::Link => PossibleValue::new("l"),
+        })
+    }
+}
 
 #[derive(Debug)]
 pub struct Config {
     paths: Vec<String>,
     patterns: Vec<Regex>,
-    types: Vec<String>,
+    types: Vec<EntryType>,
 }
 
 pub fn get_args() -> Result<Config, Box<dyn Error>> {
@@ -34,7 +55,7 @@ pub fn get_args() -> Result<Config, Box<dyn Error>> {
                 .short('t')
                 .long("type")
                 .action(ArgAction::Append)
-                .value_parser(["d", "f", "l"])
+                .value_parser(EnumValueParser::<EntryType>::new())
                 .num_args(0..)
         )
         .get_matches();
@@ -48,10 +69,10 @@ pub fn get_args() -> Result<Config, Box<dyn Error>> {
                 .unwrap_or_default()
                 .map(|p| Regex::new(p.as_str()).unwrap())
                 .collect(),
-        types: match matches.get_many::<String>("TYPE") {
-            Some(m) => m.map(|s| s.to_string()).collect(),
-            _ => vec![],
-        },
+        types: matches.get_many::<EntryType>("TYPE")
+                .unwrap_or_default()
+                .cloned()
+                .collect()
     })
 }
 
@@ -65,7 +86,7 @@ fn visit_dirs(cfg: &Config, node: &std::path::Path) -> Result<(), Box<dyn std::e
 
     if node.is_dir() {
         if matched &&
-            (cfg.types.iter().any(|s| s == "d") ||
+            (cfg.types.iter().any(|e| *e == EntryType::Dir) ||
              cfg.types.len() == 0) {
             println!("{}", node.display()); 
         }
@@ -80,7 +101,7 @@ fn visit_dirs(cfg: &Config, node: &std::path::Path) -> Result<(), Box<dyn std::e
 
     if node.is_file() {
         if matched &&
-            (cfg.types.iter().any(|s| s == "f") ||
+            (cfg.types.iter().any(|e| *e == EntryType::File) ||
              cfg.types.len() == 0) {
             println!("{}", node.display()); 
         }
@@ -89,7 +110,7 @@ fn visit_dirs(cfg: &Config, node: &std::path::Path) -> Result<(), Box<dyn std::e
 
     if node.is_symlink() {
         if matched &&
-            (cfg.types.iter().any(|s| s == "l") ||
+            (cfg.types.iter().any(|e| *e == EntryType::Link) ||
              cfg.types.len() == 0) {
             println!("{}", node.display()); 
         }
